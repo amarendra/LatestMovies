@@ -1,10 +1,10 @@
 package im.amar.latestmovies.utils;
 
+import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import org.json.JSONArray;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -12,16 +12,14 @@ import java.util.Date;
 import java.util.HashMap;
 
 public final class Utils {
-    private Utils() {
-    }
-
     public static final String BASE_URL_IMG = "http://image.tmdb.org/t/p/w200";
-
     public static final String TAG = "LatestMovies";
     public static final String ARG_MOVIE = "movie";
+    public static final String SHARED_PREF_FILE_NAME = "latest_movies_shared_pref";
+    public static final String KEY_VOTE_COUNT = "vote_count";
+    public static final int DEFAULT_MIN_VOTE = 25;
 
     private static final String DATE_FORMAT = "yyyy-MM-dd";
-
     private static final String GENRE_JSON = "[\n" +
             "  {\n" +
             "    \"id\": 28,\n" +
@@ -100,44 +98,43 @@ public final class Utils {
             "    \"name\": \"Western\"\n" +
             "  }\n" +
             "]";
-
     private static HashMap<Integer, String> GENRE_MAP = new HashMap<>();
 
     static {
         try {
-            Gson gson = new Gson();
-            GENRE_MAP = gson.fromJson(GENRE_JSON, new TypeToken<HashMap<Integer, String>>() {}.getType());
+            JSONArray jsonArray = new JSONArray(GENRE_JSON);
+            for (int i = 0; i < jsonArray.length(); i++) {
+                GENRE_MAP.put(jsonArray.getJSONObject(i).getInt("id"), jsonArray.getJSONObject(i).getString("name"));
+            }
         } catch (Exception ex) {
             Log.e(TAG, "Exception: " + Log.getStackTraceString(ex));
         }
+    }
+
+    private Utils() {
     }
 
     public static String getGenre(int id) {
         return (GENRE_MAP != null && GENRE_MAP.size() > 0) ? GENRE_MAP.get(id) : "";
     }
 
-    public static String today() {
-        Date today = new Date();
-        return new SimpleDateFormat(DATE_FORMAT).format(today);
-    }
-
-    public static String lastWeek() {
+    public static String lastMonth() {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(new Date());
-        calendar.add(Calendar.DATE, -7);
+        calendar.add(Calendar.DATE, -30);
 
         return new SimpleDateFormat(DATE_FORMAT).format(calendar.getTime());
     }
 
     public static boolean isDateSame(String date, int year, int month, int day) {
-        return  !TextUtils.isEmpty(date) && date.equalsIgnoreCase(getDate(year, month, day));
+        return !TextUtils.isEmpty(date) && date.equalsIgnoreCase(getDate(year, month, day));
     }
 
     public static String getDate(int year, int month, int day) {
         if (year != 0 && month != 0 && day != 0) {
             return year + "-" + month + "-" + day;
         } else {
-            return lastWeek();
+            return lastMonth();
         }
     }
 }

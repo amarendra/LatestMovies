@@ -36,13 +36,14 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
-        app:srcCompat="@android:drawable/ic_dialog_email" />
+        app:backgroundTint="@color/colorPrimary"
+        app:srcCompat="@android:drawable/ic_menu_today" />
 
     <ProgressBar
         android:id="@+id/progress_bar"
-        android:layout_gravity="center"
-        android:visibility="gone"
         android:layout_width="50dp"
-        android:layout_height="50dp" />
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:visibility="gone" />
 
 </android.support.design.widget.CoordinatorLayout>

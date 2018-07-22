@@ -1,7 +1,6 @@
 package im.amar.latestmovies.models;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class ApiResponse {
     public ArrayList<Movie> results;

@@ -1,29 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="90dp"
-    android:layout_marginBottom="20dp"
-    xmlns:tools="http://schemas.android.com/tools">
+    android:layout_height="75dp"
+    android:layout_marginBottom="10dp"
+    android:layout_marginTop="5dp">
 
     <ImageView
         android:id="@+id/iv_poster"
-        android:layout_alignParentStart="true"
         android:layout_width="75dp"
-        android:layout_height="75dp" />
+        android:layout_height="75dp"
+        android:layout_alignParentStart="true"
+        android:src="@drawable/img_no_image_small" />
 
     <LinearLayout
         android:id="@+id/ll_details"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="10dp"
         android:layout_toRightOf="@id/iv_poster"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:background="@drawable/bg_rounded_corner"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/title"
-            android:maxLines="1"
-            android:ellipsize="end"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:paddingVertical="3dp"
+            android:singleLine="true"
             android:textAppearance="?attr/textAppearanceListItem"
             tools:text="This is a trial text" />
 
@@ -31,23 +36,18 @@
             android:id="@+id/rating_and_year"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceListItem"
+            android:layout_marginLeft="10dp"
+            android:paddingVertical="3dp"
+            android:textAppearance="?attr/textAppearanceListItemSecondary"
             tools:text="This is a trial text" />
 
         <TextView
             android:id="@+id/genre"
-            android:maxLines="1"
-            android:ellipsize="end"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceListItem"
+            android:layout_marginLeft="10dp"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceListItemSecondary"
             tools:text="This is a trial text" />
     </LinearLayout>
-
-    <View
-        android:layout_alignParentBottom="true"
-        android:layout_marginLeft="80dp"
-        android:layout_width="match_parent"
-        android:background="@android:color/darker_gray"
-        android:layout_height="5dp" />
 </RelativeLayout>

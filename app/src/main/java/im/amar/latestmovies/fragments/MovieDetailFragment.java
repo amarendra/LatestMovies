@@ -1,8 +1,8 @@
 package im.amar.latestmovies.fragments;
 
 import android.app.Activity;
-import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
+import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -47,6 +47,7 @@ public class MovieDetailFragment extends Fragment {
         if (mMovie != null) {
             Picasso.get()
                     .load(BASE_URL_IMG + mMovie.poster_path)
+                    .placeholder(R.drawable.img_no_image)
                     .fit()
                     .into((ImageView) rootView.findViewById(R.id.iv_poster));
             ((TextView) rootView.findViewById(R.id.tv_votes)).setText("Rating: " + String.valueOf(mMovie.vote_average) + " (" + mMovie.vote_count + ")");

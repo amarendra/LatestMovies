@@ -2,16 +2,22 @@ package im.amar.latestmovies;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.support.design.widget.FloatingActionButton;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.Calendar;
 
 import im.amar.latestmovies.adapters.MovieListAdapter;
 import im.amar.latestmovies.api.IApiService;
@@ -22,13 +28,13 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-
+import static im.amar.latestmovies.utils.Utils.DEFAULT_MIN_VOTE;
+import static im.amar.latestmovies.utils.Utils.KEY_VOTE_COUNT;
+import static im.amar.latestmovies.utils.Utils.SHARED_PREF_FILE_NAME;
+import static im.amar.latestmovies.utils.Utils.TAG;
 import static im.amar.latestmovies.utils.Utils.getDate;
 import static im.amar.latestmovies.utils.Utils.isDateSame;
-import static im.amar.latestmovies.utils.Utils.TAG;
-import static im.amar.latestmovies.utils.Utils.today;
+import static im.amar.latestmovies.utils.Utils.lastMonth;
 
 public class MovieListActivity extends AppCompatActivity {
 
@@ -45,6 +51,9 @@ public class MovieListActivity extends AppCompatActivity {
     private EndlessScrollListener mScrollListener;
     private MovieListAdapter mAdapter;
     private DatePickerDialog mPicker;
+    private Calendar mCal = Calendar.getInstance();
+    private String mAfterDateParam = lastMonth();
+    private int mPage = 1;
 
     DatePickerDialog.OnDateSetListener mDateSetListener = new DatePickerDialog.OnDateSetListener() {
         @Override
@@ -57,7 +66,6 @@ public class MovieListActivity extends AppCompatActivity {
                 mPage = 1;
                 mResponse.results.clear();
                 mAdapter.setData(mResponse.results);
-                mAdapter.notifyDataSetChanged();
                 fetchMovies();
             } else {
                 Log.d(TAG, "Same date");
@@ -112,16 +120,65 @@ public class MovieListActivity extends AppCompatActivity {
         mRecyclerView.setAdapter(mAdapter);
 
         mProgressBar = findViewById(R.id.progress_bar);
-        assert  mProgressBar != null;
+        assert mProgressBar != null;
 
         fetchMovies(); // fetch the first page of movies between 7 days ago and today
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.findItem(R.id.menu_vote).setTitle("Minimum vote: " + getMinVoteCount());
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.menu_vote:
+
+                return true;
+            case R.id.menu_about:
+                Toast.makeText(getApplicationContext(), "Just a simple movie app, nothing fancy.", Toast.LENGTH_LONG).show();
+                return true;
+
+            case R.id.vote_none:
+                setMinVoteCount(0);
+                return true;
+
+            case R.id.vote_10:
+                setMinVoteCount(10);
+                return true;
+
+            case R.id.vote_25:
+                setMinVoteCount(25);
+                return true;
+
+            case R.id.vote_50:
+                setMinVoteCount(50);
+                return true;
+
+            case R.id.vote_500:
+                setMinVoteCount(500);
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
     private void fetchMovies() {
         IApiService apiService = RetrofitClient.getClient().create(IApiService.class);
-        Call<ApiResponse> call = apiService.discoverMovies(mPage, getDate(0, 0, 0), today());
+        Call<ApiResponse> call = apiService.discoverMovies(mPage, mAfterDateParam, getMinVoteCount());
 
-        Log.d(TAG, "Request made");
+        Log.d(TAG, "Request made - mPage: " + mPage + " After: " + mAfterDateParam);
 
         mProgressBar.setVisibility(View.VISIBLE);
 
@@ -130,7 +187,7 @@ public class MovieListActivity extends AppCompatActivity {
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 Log.d(TAG, "Response received: " + response.body().results);
 
-                int currentSize = (mResponse != null && mResponse.results != null) ? mResponse.results.size() : 0;
+                int currentSize = mResponse.results.size();
 
                 if (mResponse != null && mResponse.results != null && mResponse.results.size() > 0
                         && response.body() != null && response.body().results != null && response.body().results.size() > 0) {
@@ -140,11 +197,18 @@ public class MovieListActivity extends AppCompatActivity {
 
                     mResponse.results.addAll(response.body().results);
                 } else {
-                    mResponse = response.body();
+                    if (mResponse.results.size() == 0) {
+                        mResponse = response.body();
+                    } else {
+                        Toast.makeText(getApplicationContext(), "No more movies :(. Maybe choose an older date, or lower vote count", Toast.LENGTH_LONG).show();
+                    }
                 }
 
-                mAdapter.setData(mResponse.results);
-                mAdapter.notifyItemRangeInserted(currentSize, response.body().results.size());
+                if (currentSize != mResponse.results.size()) {
+                    mAdapter.setData(mResponse.results);
+                } else {
+                    Log.d(TAG, "Data size didn't change");  // test for breaking edge cases todo
+                }
 
                 mProgressBar.setVisibility(View.GONE);
             }
@@ -158,8 +222,13 @@ public class MovieListActivity extends AppCompatActivity {
         });
     }
 
-    private Calendar mCal = Calendar.getInstance();
+    private int getMinVoteCount() {
+        return getSharedPreferences(SHARED_PREF_FILE_NAME, MODE_PRIVATE).getInt(KEY_VOTE_COUNT, DEFAULT_MIN_VOTE);
+    }
 
-    private String mAfterDateParam;
-    private int mPage = 1;
+    // there will be no forced API call on min vote change, however it will be picked on next calls onwards
+    private void setMinVoteCount(int votes) {
+        getSharedPreferences(SHARED_PREF_FILE_NAME, MODE_PRIVATE).edit().putInt(KEY_VOTE_COUNT, votes).apply();
+        Toast.makeText(getApplicationContext(), "Min vote count set to: " + votes, Toast.LENGTH_LONG).show();
+    }
 }

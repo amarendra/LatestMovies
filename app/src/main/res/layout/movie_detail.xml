@@ -8,35 +8,37 @@
 
     <ImageView
         android:id="@+id/iv_poster"
-        android:layout_gravity="center_horizontal"
         android:layout_width="200dp"
-        android:layout_height="200dp" />
+        android:layout_height="200dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp" />
 
     <TextView
         android:id="@+id/tv_votes"
         style="?android:attr/textAppearanceMedium"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="20dp"
-        android:padding="16dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="15dp"
+        android:padding="16dp" />
 
     <TextView
         android:id="@+id/title"
         style="?android:attr/textAppearanceLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
         android:padding="16dp"
         android:textIsSelectable="true"
         tools:context=".fragments.MovieDetailFragment" />
 
     <TextView
         android:id="@+id/rating_and_year"
-        style="?android:attr/textAppearanceLarge"
+        style="?android:attr/textAppearanceMedium"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="10dp"
         android:padding="16dp"
         android:textIsSelectable="true"
         tools:context=".fragments.MovieDetailFragment" />

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_vote"
+        android:title="Minimum vote">
+
+        <menu>
+            <item
+                android:id="@+id/vote_none"
+                android:title="None" />
+
+            <item
+                android:id="@+id/vote_10"
+                android:title="10 votes" />
+
+            <item
+                android:id="@+id/vote_25"
+                android:title="25 votes" />
+
+            <item
+                android:id="@+id/vote_50"
+                android:title="50 votes" />
+
+            <item
+                android:id="@+id/vote_500"
+                android:title="500 votes" />
+        </menu>
+    </item>
+    <item
+        android:id="@+id/menu_about"
+        android:title="About" />
+</menu>

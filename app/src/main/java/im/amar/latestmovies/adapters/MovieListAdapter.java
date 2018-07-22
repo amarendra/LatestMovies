@@ -16,9 +16,9 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
 import im.amar.latestmovies.MovieDetailActivity;
-import im.amar.latestmovies.fragments.MovieDetailFragment;
 import im.amar.latestmovies.MovieListActivity;
 import im.amar.latestmovies.R;
+import im.amar.latestmovies.fragments.MovieDetailFragment;
 import im.amar.latestmovies.models.Movie;
 
 import static im.amar.latestmovies.utils.Utils.ARG_MOVIE;
@@ -28,7 +28,6 @@ import static im.amar.latestmovies.utils.Utils.getGenre;
 public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.ViewHolder> {
 
     private final MovieListActivity mParentActivity;
-    private ArrayList<Movie> mMovies;
     private final boolean mTwoPane;
     private final View.OnClickListener mOnClickListener = new View.OnClickListener() {
         @Override
@@ -51,6 +50,7 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.View
             }
         }
     };
+    private ArrayList<Movie> mMovies;
 
     public MovieListAdapter(MovieListActivity parent, ArrayList<Movie> movies, boolean twoPane) {
         mMovies = movies;
@@ -59,7 +59,15 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.View
     }
 
     public void setData(ArrayList<Movie> movies) {
+        int currentSize = mMovies.size();
         mMovies = movies;
+        int newSize = mMovies.size();
+
+        if (newSize > currentSize) {
+            notifyItemRangeInserted(currentSize, (newSize - currentSize));
+        } else {
+            notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -75,6 +83,7 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.View
 
         Picasso.get()
                 .load(BASE_URL_IMG + movie.poster_path)
+                .placeholder(R.drawable.img_no_image_small)
                 .fit()
                 .into(holder.mPoster);
 
@@ -91,6 +100,35 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.View
         return mMovies.size();
     }
 
+    private String genreString(int[] genres) {
+        String genreString = "";
+
+        for (int i = 0; i < genres.length; i++) {
+            String genre = getGenre(genres[i]);
+
+            if (!TextUtils.isEmpty(genre)) {
+                genreString += genre + ((i != (genres.length - 1)) ? ", " : "");
+            }
+        }
+
+        return "Genres: " + genreString;
+    }
+
+    private String ratingAndYear(Movie movie) {
+        String str = "";
+
+        String vote = String.valueOf(movie.vote_average) + " (" + movie.vote_count + ")";
+        String year = movie.release_date.substring(0, 4);
+
+        if (!TextUtils.isEmpty(vote)) {
+            str = vote + " | " + year;
+        } else {
+            str = year;
+        }
+
+        return str;
+    }
+
     class ViewHolder extends RecyclerView.ViewHolder {
         final ImageView mPoster;
         final TextView mTitle;
@@ -102,35 +140,7 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.View
             mPoster = (ImageView) view.findViewById(R.id.iv_poster);
             mTitle = (TextView) view.findViewById(R.id.title);
             mRatingAndYear = (TextView) view.findViewById(R.id.rating_and_year);
-            mGenres = (TextView) view.findViewById(R.id.rating_and_year);
+            mGenres = (TextView) view.findViewById(R.id.genre);
         }
-    }
-
-    private String genreString(int[] genres) {
-        String genreString = "";
-        for (int id : genres) {
-            String genre = getGenre(id);
-
-            if (!TextUtils.isEmpty(genre)) {
-                genreString += genre + ((id != (genres.length - 1)) ? ", " : "");
-            }
-        }
-
-        return genreString;
-    }
-
-    private String ratingAndYear(Movie movie) {
-        String str = "";
-
-        String vote = String.valueOf(movie.vote_average) + " (" + movie.vote_count + ")";
-        String year = movie.release_date.substring(0, 3);
-
-        if (!TextUtils.isEmpty(vote)) {
-            str = vote + " | " + year;
-        } else {
-            str = year;
-        }
-
-        return str;
     }
 }
