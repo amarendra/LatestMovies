@@ -1,31 +1,35 @@
 package im.amar.latestmovies;
 
-import android.content.Context;
-import android.content.Intent;
+import android.app.DatePickerDialog;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.view.LayoutInflater;
+import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
+import android.widget.DatePicker;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
-import im.amar.latestmovies.dummy.DummyContent;
+import im.amar.latestmovies.adapters.MovieListAdapter;
+import im.amar.latestmovies.api.IApiService;
+import im.amar.latestmovies.api.RetrofitClient;
+import im.amar.latestmovies.contracts.EndlessScrollListener;
+import im.amar.latestmovies.models.ApiResponse;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Calendar;
 
-/**
- * An activity representing a list of Movies. This activity
- * has different presentations for handset and tablet-size devices. On
- * handsets, the activity presents a list of items, which when touched,
- * lead to a {@link MovieDetailActivity} representing
- * item details. On tablets, the activity presents the list of items and
- * item details side-by-side using two vertical panes.
- */
+import static im.amar.latestmovies.utils.Utils.getDate;
+import static im.amar.latestmovies.utils.Utils.isDateSame;
+import static im.amar.latestmovies.utils.Utils.TAG;
+import static im.amar.latestmovies.utils.Utils.today;
+
 public class MovieListActivity extends AppCompatActivity {
 
     /**
@@ -33,6 +37,33 @@ public class MovieListActivity extends AppCompatActivity {
      * device.
      */
     private boolean mTwoPane;
+
+    private ApiResponse mResponse;
+    private RecyclerView mRecyclerView;
+    private ProgressBar mProgressBar;
+
+    private EndlessScrollListener mScrollListener;
+    private MovieListAdapter mAdapter;
+    private DatePickerDialog mPicker;
+
+    DatePickerDialog.OnDateSetListener mDateSetListener = new DatePickerDialog.OnDateSetListener() {
+        @Override
+        public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+            Log.d(TAG, "date changed: " + year + "-" + month + "-" + day);
+
+            if (!isDateSame(mAfterDateParam, year, month, day)) {
+                mAfterDateParam = getDate(year, month, day);
+                mScrollListener.resetIndices();
+                mPage = 1;
+                mResponse.results.clear();
+                mAdapter.setData(mResponse.results);
+                mAdapter.notifyDataSetChanged();
+                fetchMovies();
+            } else {
+                Log.d(TAG, "Same date");
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,94 +78,88 @@ public class MovieListActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                Log.d(TAG, "Fab clicked");
+                mPicker.show();
             }
         });
 
         if (findViewById(R.id.movie_detail_container) != null) {
-            // The detail container view will be present only in the
-            // large-screen layouts (res/values-w900dp).
-            // If this view is present, then the
-            // activity should be in two-pane mode.
             mTwoPane = true;
         }
 
-        View recyclerView = findViewById(R.id.movie_list);
-        assert recyclerView != null;
-        setupRecyclerView((RecyclerView) recyclerView);
-    }
+        mPicker = new DatePickerDialog(this, mDateSetListener, mCal.get(Calendar.YEAR), mCal.get(Calendar.MONTH),
+                mCal.get(Calendar.DAY_OF_MONTH));
 
-    private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(this, DummyContent.ITEMS, mTwoPane));
-    }
+        mRecyclerView = findViewById(R.id.movie_list);
+        assert mRecyclerView != null;
 
-    public static class SimpleItemRecyclerViewAdapter
-            extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        mRecyclerView.setLayoutManager(linearLayoutManager);
 
-        private final MovieListActivity mParentActivity;
-        private final List<DummyContent.DummyItem> mValues;
-        private final boolean mTwoPane;
-        private final View.OnClickListener mOnClickListener = new View.OnClickListener() {
+        mScrollListener = new EndlessScrollListener(linearLayoutManager) {
             @Override
-            public void onClick(View view) {
-                DummyContent.DummyItem item = (DummyContent.DummyItem) view.getTag();
-                if (mTwoPane) {
-                    Bundle arguments = new Bundle();
-                    arguments.putString(MovieDetailFragment.ARG_ITEM_ID, item.id);
-                    MovieDetailFragment fragment = new MovieDetailFragment();
-                    fragment.setArguments(arguments);
-                    mParentActivity.getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.movie_detail_container, fragment)
-                            .commit();
-                } else {
-                    Context context = view.getContext();
-                    Intent intent = new Intent(context, MovieDetailActivity.class);
-                    intent.putExtra(MovieDetailFragment.ARG_ITEM_ID, item.id);
-
-                    context.startActivity(intent);
-                }
+            public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
+                mPage++;
+                fetchMovies();
             }
         };
 
-        SimpleItemRecyclerViewAdapter(MovieListActivity parent,
-                                      List<DummyContent.DummyItem> items,
-                                      boolean twoPane) {
-            mValues = items;
-            mParentActivity = parent;
-            mTwoPane = twoPane;
-        }
+        mRecyclerView.addOnScrollListener(mScrollListener);
+        mResponse = new ApiResponse();
+        mResponse.results = new ArrayList<>();
 
-        @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.movie_list_content, parent, false);
-            return new ViewHolder(view);
-        }
+        mAdapter = new MovieListAdapter(this, mResponse.results, mTwoPane);
+        mRecyclerView.setAdapter(mAdapter);
 
-        @Override
-        public void onBindViewHolder(final ViewHolder holder, int position) {
-            holder.mIdView.setText(mValues.get(position).id);
-            holder.mContentView.setText(mValues.get(position).content);
+        mProgressBar = findViewById(R.id.progress_bar);
+        assert  mProgressBar != null;
 
-            holder.itemView.setTag(mValues.get(position));
-            holder.itemView.setOnClickListener(mOnClickListener);
-        }
-
-        @Override
-        public int getItemCount() {
-            return mValues.size();
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            final TextView mIdView;
-            final TextView mContentView;
-
-            ViewHolder(View view) {
-                super(view);
-                mIdView = (TextView) view.findViewById(R.id.id_text);
-                mContentView = (TextView) view.findViewById(R.id.content);
-            }
-        }
+        fetchMovies(); // fetch the first page of movies between 7 days ago and today
     }
+
+    private void fetchMovies() {
+        IApiService apiService = RetrofitClient.getClient().create(IApiService.class);
+        Call<ApiResponse> call = apiService.discoverMovies(mPage, getDate(0, 0, 0), today());
+
+        Log.d(TAG, "Request made");
+
+        mProgressBar.setVisibility(View.VISIBLE);
+
+        call.enqueue(new Callback<ApiResponse>() {
+            @Override
+            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                Log.d(TAG, "Response received: " + response.body().results);
+
+                int currentSize = (mResponse != null && mResponse.results != null) ? mResponse.results.size() : 0;
+
+                if (mResponse != null && mResponse.results != null && mResponse.results.size() > 0
+                        && response.body() != null && response.body().results != null && response.body().results.size() > 0) {
+                    mResponse.page = response.body().page;
+                    mResponse.total_pages = response.body().total_pages;
+                    mResponse.total_results = response.body().total_results;
+
+                    mResponse.results.addAll(response.body().results);
+                } else {
+                    mResponse = response.body();
+                }
+
+                mAdapter.setData(mResponse.results);
+                mAdapter.notifyItemRangeInserted(currentSize, response.body().results.size());
+
+                mProgressBar.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse> call, Throwable t) {
+                Log.d(TAG, "API Fail received: " + Log.getStackTraceString(t));
+                mProgressBar.setVisibility(View.GONE);
+                Toast.makeText(getApplicationContext(), "Fetching movies failed", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private Calendar mCal = Calendar.getInstance();
+
+    private String mAfterDateParam;
+    private int mPage = 1;
 }
